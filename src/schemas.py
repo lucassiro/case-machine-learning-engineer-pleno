@@ -8,8 +8,7 @@ class VariableSchema(BaseModel):
 
 class PredictionSchema(BaseModel):
     status: str
-    flight_delay: float | None = None
-    message: str | None = None
+    flight_delay: float
 
 
 class StatusSchema(BaseModel):

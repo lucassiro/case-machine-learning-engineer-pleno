@@ -3,7 +3,7 @@ from datetime import datetime
 from http import HTTPStatus
 
 import uvicorn
-from fastapi import FastAPI, File
+from fastapi import FastAPI, File, HTTPException
 
 from src.history import History
 from src.model import load_model
@@ -15,10 +15,10 @@ app = FastAPI()
 @app.post("/model/predict/", response_model=PredictionSchema, status_code=HTTPStatus.OK)
 async def predict(variables: VariableSchema):
     model = load_model()
-    if not model:
-        return PredictionSchema(
-            status="error",
-            message="model not found, send a model first using /model/load/",
+    if model is None:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="model not found, send a model first using /model/load/"
         )
 
     prediction = model.predict([[variables.origin_wind_speed, variables.dest_wind_speed]])
