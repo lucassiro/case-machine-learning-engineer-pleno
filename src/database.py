@@ -1,5 +1,6 @@
 from mongomock.mongo_client import MongoClient
 
+
 class InMemoryDatabase:
     _instance = None
 

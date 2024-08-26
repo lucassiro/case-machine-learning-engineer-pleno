@@ -1,35 +1,60 @@
-from fastapi import FastAPI
-from database import InMemoryDatabase
+import pickle
+from datetime import datetime
+from http import HTTPStatus
 
 import uvicorn
+from fastapi import FastAPI, File
 
+from src.history import History
+from src.model import load_model
+from src.schemas import PredictionSchema, StatusSchema, VariableSchema
 
 app = FastAPI()
 
 
-@app.get("/health", status_code=200, tags=["health"], summary="Health check")
+@app.post("/model/predict/", response_model=PredictionSchema, status_code=HTTPStatus.OK)
+async def predict(variables: VariableSchema):
+    model = load_model()
+    if not model:
+        return PredictionSchema(
+            status="error",
+            message="model not found, send a model first using /model/load/",
+        )
+
+    prediction = model.predict([[variables.origin_wind_speed, variables.dest_wind_speed]])
+
+    history = History()
+    history.insert_one({
+        "timestamp": datetime.now(),
+        "origin_wind_speed": variables.origin_wind_speed,
+        "dest_wind_speed": variables.dest_wind_speed,
+        "flight_delay": prediction[0],
+    })
+
+    response = PredictionSchema(status="ok", flight_delay=prediction[0])
+    return response
+
+
+@app.post("/model/load/", status_code=HTTPStatus.OK, response_model=StatusSchema)
+async def load(model: bytes = File()):
+    model = pickle.loads(model)
+    with open("src/models/model.pkl", "wb") as f:
+        pickle.dump(model, f)
+    status = StatusSchema(status="ok")
+    return status
+
+
+@app.get("/model/history/", status_code=HTTPStatus.OK)
+async def history():
+    history = History().get_history()
+
+    return {"status": "ok", "history": history}
+
+
+@app.get("/health/", status_code=HTTPStatus.OK, response_model=StatusSchema)
 async def health():
-    return {"status": "ok"}
-
-@app.post("/user/", tags=["example"], summary="Insert user")
-async def insert(data: dict):
-    db = InMemoryDatabase()
-    users = db.get_collection('users')
-    users.insert_one(data)
-    return {"status": "ok"}
-
-@app.get("/user/{name}", status_code=200, tags=["example"], summary="Get user by name")
-async def get(name: str):
-    db = InMemoryDatabase()
-    users = db.get_collection('users')
-    user = users.find_one({"name": name})
-    return {"status": "ok", "user": user}
-
-@app.get("/user/", tags=["example"], summary="List all users")
-async def list():
-    db = InMemoryDatabase()
-    users = db.get_collection('users')
-    return {"status": "ok", "users": [x for x in users.find({},{"_id": 0})]}
+    status = StatusSchema(status="ok")
+    return status
 
 
 if __name__ == "__main__":
