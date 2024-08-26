@@ -1,3 +1,4 @@
+import os
 from pickle import dump, load
 
 model_path = "src/models/model.pkl"
@@ -14,5 +15,6 @@ def load_model():
 
 
 def save_model(model):
+    os.makedirs("src/models", exist_ok=True)
     with open(model_path, "wb") as f:
         dump(model, f)
