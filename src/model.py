@@ -2,6 +2,7 @@ from pickle import dump, load
 
 model_path = "src/models/model.pkl"
 
+
 def load_model():
     try:
         with open(model_path, "rb") as f:
