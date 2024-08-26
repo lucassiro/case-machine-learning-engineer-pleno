@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI, File, HTTPException
 
 from src.history import History
-from src.model import load_model
+from src.model import load_model, save_model
 from src.schemas import PredictionSchema, StatusSchema, VariableSchema
 
 app = FastAPI()
@@ -38,8 +38,8 @@ async def predict(variables: VariableSchema):
 @app.post("/model/load/", status_code=HTTPStatus.OK, response_model=StatusSchema)
 async def load(model: bytes = File()):
     model = pickle.loads(model)
-    with open("src/models/model.pkl", "wb") as f:
-        pickle.dump(model, f)
+    save_model(model)
+
     status = StatusSchema(status="ok")
     return status
 
